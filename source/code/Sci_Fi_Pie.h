@@ -78,6 +78,18 @@ enum EntityType
 	EntityType_Wall,
 	EntityType_Player,
 	EntityType_Projectile,
+
+	EntityType_Count
+};
+
+enum ColliderType
+{
+	ColliderType_Null,
+
+	ColliderType_Box,
+	ColliderType_Circle,
+
+	ColliderType_Count
 };
 
 struct Entity
@@ -98,14 +110,16 @@ struct Entity
 
 	f32 Width;
 	f32 Height;
+
+	ColliderType Collider;
 	f32 CollisionRadius;
+	f32 CollisionWidth;
+	f32 CollisionHeight;	
 };
 
 struct GameState
 {
-	Entity Player1;
-	Entity Projectile;
-	Entity Walls[256];
+	Entity Entities[256];
 	f32 dT;
 };
 

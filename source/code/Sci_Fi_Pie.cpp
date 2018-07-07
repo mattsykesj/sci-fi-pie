@@ -181,15 +181,15 @@ internal bool TestEdge(f32 entityDeltaX, f32 entityDeltaY,
 	return collided;	
 }
 
-internal bool TestCorner(V2 playerRelativePos, V2 newPlayerRelativePos, V2 playerDelta, f32 radius, World* world,
+internal bool TestCorner(V2 entityRelativePos, V2 newEntityRelativePos, V2* entityDelta, f32 radius,
 						 V2* r, f32* tMin, f32 minX, f32 maxX, f32 minY, f32 maxY, f32 h, f32 k)
 {
 	bool collided = false;
 
-	f32 X1 = playerRelativePos.X; 
-	f32 X2 = newPlayerRelativePos.X;
-	f32 Y1 = playerRelativePos.Y; 					
-	f32 Y2 = newPlayerRelativePos.Y;
+	f32 X1 = entityRelativePos.X; 
+	f32 X2 = newEntityRelativePos.X;
+	f32 Y1 = entityRelativePos.Y; 					
+	f32 Y2 = newEntityRelativePos.Y;
 
 	f32 H =  h;
 	f32 K =  k;	
@@ -206,8 +206,8 @@ internal bool TestCorner(V2 playerRelativePos, V2 newPlayerRelativePos, V2 playe
 
 		if (T > 0 && T < *tMin)
 		{
-			f32 collisionPosX = playerRelativePos.X + (T * playerDelta.X);
-			f32 collisionPosY = playerRelativePos.Y + (T * playerDelta.Y);
+			f32 collisionPosX = entityRelativePos.X + (T * entityDelta->X);
+			f32 collisionPosY = entityRelativePos.Y + (T * entityDelta->Y);
 			
 			if(collisionPosY < maxY && collisionPosY > minY &&  
 				collisionPosX < maxX && collisionPosX > minX)
@@ -291,20 +291,117 @@ internal void HandleCollision(Entity* a, Entity* b, V2* r)
 	}
 }
 
+internal bool CircleVsSquareCollision(Entity* a, Entity* b, V2* aDelta, f32* tMin, V2* r) 
+{
+	bool collided = false;
+
+	f32 collisionDiameterX = b->CollisionWidth + (a->CollisionRadius * 2);
+	f32 collisionDiameterY = b->CollisionWidth + (a->CollisionRadius * 2); 
+
+	V2 tileMin = -0.5f * V2{collisionDiameterX, collisionDiameterY};
+	V2 tileMax =  0.5f * V2{collisionDiameterX, collisionDiameterY};  
+
+	V2 playerRelativePos = a->Position - b->Position;
+	V2 newPlayerRelativePos = (a->Position + *aDelta) - b->Position;
+	
+	if(TestEdge(aDelta->X, aDelta->Y, playerRelativePos.X, playerRelativePos.Y, tileMax.X,
+		 tileMin.Y + a->CollisionRadius - 0.1f, tileMax.Y - a->CollisionRadius + 0.1f, tMin))
+	{
+		*r = V2{1, 0};
+		collided = true;
+	}
+	if(TestEdge(aDelta->X, aDelta->Y, playerRelativePos.X, playerRelativePos.Y, tileMin.X, 
+		tileMin.Y + a->CollisionRadius - 0.1f, tileMax.Y - a->CollisionRadius + 0.1f, tMin))
+	{
+		*r = V2{-1, 0};
+		collided = true;
+	}					
+	if(TestEdge(aDelta->Y, aDelta->X, playerRelativePos.Y, playerRelativePos.X, tileMax.Y, 
+		tileMin.X + a->CollisionRadius, tileMax.X - a->CollisionRadius, tMin))
+	{
+		*r = V2{0, 1};
+		collided = true;
+	}					
+	if(TestEdge(aDelta->Y, aDelta->X, playerRelativePos.Y, playerRelativePos.X, tileMin.Y, 
+		tileMin.X + a->CollisionRadius, tileMax.X - a->CollisionRadius, tMin))
+	{
+		*r = V2{0, -1};
+		collided = true;
+	}
+
+	if(TestCorner(playerRelativePos, newPlayerRelativePos, aDelta, a->CollisionRadius, r, tMin, 
+				(0.5f * b->CollisionWidth),
+				(0.5f * b->CollisionWidth) + a->CollisionRadius,
+				(0.5f * b->CollisionHeight), 
+				(0.5f * b->CollisionHeight) + a->CollisionRadius,
+				(0.5f * b->CollisionWidth),
+				(0.5f * b->CollisionHeight)))
+	{
+		collided = true;
+	}
+
+	if(TestCorner(playerRelativePos, newPlayerRelativePos, aDelta, a->CollisionRadius, r, tMin, 
+				(-0.5f * b->CollisionWidth) - a->CollisionRadius,
+				(-0.5f * b->CollisionWidth),
+				(0.5f * b->CollisionHeight), 
+				(0.5f * b->CollisionHeight) + a->CollisionRadius,
+				(-0.5f * b->CollisionWidth),
+				(0.5f * b->CollisionHeight)))
+	{
+		collided = true;
+	}
+
+	if(TestCorner(playerRelativePos, newPlayerRelativePos, aDelta, a->CollisionRadius, r, tMin, 
+				 (0.5f * b->CollisionWidth),
+				 (0.5f * b->CollisionWidth) + a->CollisionRadius,
+				 (-0.5f * b->CollisionHeight) - a->CollisionRadius,
+				 (-0.5f * b->CollisionHeight), 
+				 (0.5f * b->CollisionWidth),
+				 (-0.5f * b->CollisionHeight)))
+	{
+		collided = true;
+	}
+
+	if(TestCorner(playerRelativePos, newPlayerRelativePos, aDelta, a->CollisionRadius, r, tMin, 
+				 (-0.5f * b->CollisionWidth) - a->CollisionRadius,
+				 (-0.5f * b->CollisionWidth),
+				 (-0.5f * b->CollisionHeight) - a->CollisionRadius,
+				 (-0.5f * b->CollisionHeight), 
+				 (-0.5f * b->CollisionWidth),
+				 (-0.5f * b->CollisionHeight)))
+	{
+		collided = true;
+	}
+
+	return collided;
+}
+
+internal bool DoesCollide(Entity* a, Entity* b, V2* aDelta, f32* tMin, V2* r) 
+{
+	bool collided = false;
+
+	if(a->Collider == ColliderType_Circle && b->Collider == ColliderType_Box)
+	{
+		collided = CircleVsSquareCollision(a, b, aDelta, tMin, r);
+	}
+
+	return collided;
+}
+
 internal void MoveEntity(Entity* entity, f32* dT, World* world, GameState* gameState)
 {
 	entity->Velocity =  (entity->Velocity + (entity->Acceleration * (*dT))) * entity->Damping;
 
-	V2 oldPlayerPosition = entity->Position;
+	V2 oldEntityPosition = entity->Position;
 
-	V2 newPlayerPosition = (entity->Position) + 
+	V2 newEntityPosition = (entity->Position) + 
 						   (entity->Acceleration * Square(*dT)) + 
 						   (entity->Velocity  * (*dT));
 
-    TilePosition playerTile = GetTilePosition(oldPlayerPosition, world);
-    TilePosition newPlayerTile = GetTilePosition(newPlayerPosition, world);
+    // TilePosition playerTile = GetTilePosition(oldEntityPosition, world);
+    // TilePosition newPlayerTile = GetTilePosition(newEntityPosition, world);
 
-	V2 playerDelta = newPlayerPosition - oldPlayerPosition;
+	V2 entityDelta = newEntityPosition - oldEntityPosition;
 
 	u32 maxIterations = 4;
 				
@@ -316,101 +413,15 @@ internal void MoveEntity(Entity* entity, f32* dT, World* world, GameState* gameS
 	    f32 tMin = 1.0f;
 		V2 r = { 0,0 };	
 
-		for(u32 entityIndex = 0; entityIndex <= ArrayCount(gameState->Walls); entityIndex++)
+		for(u32 entityIndex = 0; entityIndex <= ArrayCount(gameState->Entities); entityIndex++)
 		{
-			if(ShouldCollide(entity, &gameState->Walls[entityIndex]))
+			if(ShouldCollide(entity, &gameState->Entities[entityIndex]) && 
+			   DoesCollide(entity, &gameState->Entities[entityIndex], &entityDelta, &tMin, &r))
 			{
-
-				bool collided = false;
-
-				V2 entityPosition = gameState->Walls[entityIndex].Position;
-
-				f32 collisionDiameterX = world->TilePuckLength + entity->Width;
-				f32 collisionDiameterY = world->TilePuckLength + entity->Width; 
-
-				V2 tileMin = -0.5f * V2{collisionDiameterX, collisionDiameterY};
-				V2 tileMax =  0.5f * V2{collisionDiameterX, collisionDiameterY};  
-
-				V2 playerRelativePos = entity->Position - entityPosition;
-				V2 newPlayerRelativePos = (entity->Position + playerDelta) - entityPosition;
-				
-				if(TestEdge(playerDelta.X, playerDelta.Y, playerRelativePos.X, playerRelativePos.Y, tileMax.X,
-					 tileMin.Y + entity->CollisionRadius - 0.1f, tileMax.Y - entity->CollisionRadius + 0.1f, &tMin))
-				{
-					r = V2{1, 0};
-					collided = true;
-				}
-				if(TestEdge(playerDelta.X, playerDelta.Y, playerRelativePos.X, playerRelativePos.Y, tileMin.X, 
-					tileMin.Y + entity->CollisionRadius - 0.1f, tileMax.Y - entity->CollisionRadius + 0.1f, &tMin))
-				{
-					r = V2{-1, 0};
-					collided = true;
-				}					
-				if(TestEdge(playerDelta.Y, playerDelta.X, playerRelativePos.Y, playerRelativePos.X, tileMax.Y, 
-					tileMin.X + entity->CollisionRadius, tileMax.X - entity->CollisionRadius, &tMin))
-				{
-					r = V2{0, 1};
-					collided = true;
-				}					
-				if(TestEdge(playerDelta.Y, playerDelta.X, playerRelativePos.Y, playerRelativePos.X, tileMin.Y, 
-					tileMin.X + entity->CollisionRadius, tileMax.X - entity->CollisionRadius, &tMin))
-				{
-					r = V2{0, -1};
-					collided = true;
-				}
-
-				if(TestCorner(playerRelativePos, newPlayerRelativePos, playerDelta, entity->CollisionRadius, 
-							world, &r, &tMin, 
-							(0.5f * world->TilePuckLength),
-							(0.5f * world->TilePuckLength) + entity->CollisionRadius,
-							(0.5f * world->TilePuckLength), 
-							(0.5f * world->TilePuckLength) + entity->CollisionRadius,
-							(0.5f * world->TilePuckLength),
-							(0.5f * world->TilePuckLength)))
-				{
-					collided = true;
-				}
-
-				if(TestCorner(playerRelativePos, newPlayerRelativePos, playerDelta, entity->CollisionRadius, 
-							world, &r, &tMin, 
-							(-0.5f * world->TilePuckLength) - entity->CollisionRadius,
-							(-0.5f * world->TilePuckLength),
-							(0.5f * world->TilePuckLength), 
-							(0.5f * world->TilePuckLength) + entity->CollisionRadius,
-							(-0.5f * world->TilePuckLength),
-							(0.5f * world->TilePuckLength)))
-				{
-					collided = true;
-				}
-
-				if(TestCorner(playerRelativePos, newPlayerRelativePos, playerDelta, entity->CollisionRadius, 
-							world, &r, &tMin, 
-							 (0.5f * world->TilePuckLength),
-							 (0.5f * world->TilePuckLength) + entity->CollisionRadius,
-							 (-0.5f * world->TilePuckLength) - entity->CollisionRadius,
-							 (-0.5f * world->TilePuckLength), 
-							 (0.5f * world->TilePuckLength),
-							 (-0.5f * world->TilePuckLength)))
-				{
-					collided = true;
-				}
-
-				if(TestCorner(playerRelativePos, newPlayerRelativePos, playerDelta, entity->CollisionRadius, 
-							world, &r, &tMin, 
-							 (-0.5f * world->TilePuckLength) - entity->CollisionRadius,
-							 (-0.5f * world->TilePuckLength),
-							 (-0.5f * world->TilePuckLength) - entity->CollisionRadius,
-							 (-0.5f * world->TilePuckLength), 
-							 (-0.5f * world->TilePuckLength),
-							 (-0.5f * world->TilePuckLength)))
-				{
-					collided = true;
-				}
-
-				if(collided && !hasCollided)
+				if(!hasCollided)
 				{
 					hasCollided = true;
-					HandleCollision(entity, &gameState->Walls[entityIndex], &r);
+					HandleCollision(entity, &gameState->Entities[entityIndex], &r);
 				}
 			}
 		}
@@ -423,9 +434,9 @@ internal void MoveEntity(Entity* entity, f32* dT, World* world, GameState* gameS
 			tMin = 0;
 		}
 
-		entity->Position = entity->Position + ((tMin - epsilon) * playerDelta);
+		entity->Position = entity->Position + ((tMin - epsilon) * entityDelta);
 		entity->Velocity = entity->Velocity - (entity->Bounciness * (Dot(entity->Velocity, r) * r));
-		playerDelta =  playerDelta - (entity->Bounciness * (Dot(playerDelta, r)* r));
+		entityDelta =  entityDelta - (entity->Bounciness * (Dot(entityDelta, r)* r));
 	}
 }
 
@@ -436,7 +447,6 @@ internal void UpdatePlayer(Entity* player, f32* dT, World* world, GameState* gam
 
 internal void UpdateProjectile(Entity* projectile, f32* dT, World* world, GameState* gameState)
 {
-	// projectile->CollisionRadius = 10.0f;
 	MoveEntity(projectile, dT, world, gameState);
 }
 
@@ -458,27 +468,31 @@ internal void GameLoop(GameBackBuffer* buffer, GameInput* gameInput, GameMemory*
 	{
 		gameState->dT = 33.33f / 1000.0f;
 
-		gameState->Player1.Position = world.PucksToPixels* V2{2.5f, 2.5f};
-		gameState->Player1.AccelerationMag = 120.0f * world.PucksToPixels;
-		gameState->Player1.Width = 1.0f * world.PucksToPixels;
-		gameState->Player1.Height = 1.2f * world.PucksToPixels;
-		gameState->Player1.CollisionRadius = 0.5f * world.PucksToPixels;
-		gameState->Player1.Damping = 0.2f;
-		gameState->Player1.Bounciness = 1.0f;
-		gameState->Player1.Type = EntityType_Player;
+		gameState->Entities[0].Index = 0;	
+		gameState->Entities[0].Position = world.PucksToPixels* V2{2.5f, 2.5f};
+		gameState->Entities[0].AccelerationMag = 120.0f * world.PucksToPixels;
+		gameState->Entities[0].Width = 1.0f * world.PucksToPixels;
+		gameState->Entities[0].Height = 1.2f * world.PucksToPixels;
+		gameState->Entities[0].CollisionRadius = 0.5f * world.PucksToPixels;
+		gameState->Entities[0].Damping = 0.2f;
+		gameState->Entities[0].Bounciness = 1.0f;
+		gameState->Entities[0].Type = EntityType_Player;
+		gameState->Entities[0].Collider = ColliderType_Circle;
 
-		gameState->Projectile.Position = world.PucksToPixels* V2{10.0f, 10.0f};
-		gameState->Projectile.AccelerationMag = 180.0f * world.PucksToPixels;
-		gameState->Projectile.Width = 0.8f * world.PucksToPixels;
-		gameState->Projectile.Height = 0.8f * world.PucksToPixels;
-		gameState->Projectile.CollisionRadius = gameState->Projectile.Width / 2;
-		gameState->Projectile.Damping = 0.2f;
-		gameState->Projectile.Direction = V2 { -0.5f, 0.5f };
-		gameState->Projectile.Bounciness = 2.0f;
-		gameState->Projectile.Acceleration = gameState->Projectile.Direction * gameState->Projectile.AccelerationMag;
-		gameState->Projectile.Type = EntityType_Projectile;
+		gameState->Entities[1].Index = 1;	
+		gameState->Entities[1].Position = world.PucksToPixels* V2{10.0f, 10.0f};
+		gameState->Entities[1].AccelerationMag = 180.0f * world.PucksToPixels;
+		gameState->Entities[1].Width = 0.8f * world.PucksToPixels;
+		gameState->Entities[1].Height = 0.8f * world.PucksToPixels;
+		gameState->Entities[1].CollisionRadius = gameState->Entities[1].Width / 2;
+		gameState->Entities[1].Damping = 0.2f;
+		gameState->Entities[1].Direction = V2 { -0.5f, 0.5f };
+		gameState->Entities[1].Bounciness = 2.0f;
+		gameState->Entities[1].Acceleration = gameState->Entities[1].Direction * gameState->Entities[1].AccelerationMag;
+		gameState->Entities[1].Type = EntityType_Projectile;
+		gameState->Entities[1].Collider = ColliderType_Circle;
 
-		u32 index = 0;
+		u32 index = 2;
 		for(s32 y = 0; y <= world.CountY; y++)
 		{
 
@@ -486,11 +500,16 @@ internal void GameLoop(GameBackBuffer* buffer, GameInput* gameInput, GameMemory*
 			{
 				if(TileMap1[y][x] == 1)
 				{
-					Entity* wall = &gameState->Walls[index];
+					Entity* wall = &gameState->Entities[index];
 					wall->Position = GetTileCenter(x, y, &world);
 					wall->Width = world.TilePuckLength;
 					wall->Height = world.TilePuckLength;
 					wall->Type = EntityType_Wall;
+					wall->Index = index;
+					wall->Collider = ColliderType_Box;
+					wall->CollisionWidth = world.TilePuckLength;
+					wall->CollisionHeight = world.TilePuckLength;
+
 					index++;
 				}
 			}
@@ -500,7 +519,7 @@ internal void GameLoop(GameBackBuffer* buffer, GameInput* gameInput, GameMemory*
 	}
 
 	//Get Input from all controllers
-	gameState->Player1.Direction = V2{ 0,0 };
+	gameState->Entities[0].Direction = V2{ 0,0 };
 
 	//Make controllers specific to player entities 
 	for(s32 controllerIndex = 0; controllerIndex < MAX_CONTROLLERS; controllerIndex++)
@@ -520,38 +539,38 @@ internal void GameLoop(GameBackBuffer* buffer, GameInput* gameInput, GameMemory*
 				f32 nX = gameInput->GameControllers[controllerIndex].StickX / sMag;
 				f32 nY = gameInput->GameControllers[controllerIndex].StickY / sMag;
 
-				gameState->Player1.Direction = V2{nX, nY};
+				gameState->Entities[0].Direction = V2{nX, nY};
 			}
 		}
 		else
 		{
 			if(gameInput->GameControllers[controllerIndex].Up.EndedDown)
 			{
-				gameState->Player1.Direction.Y = 1.0f;
+				gameState->Entities[0].Direction.Y = 1.0f;
 			}
 			if(gameInput->GameControllers[controllerIndex].Down.EndedDown)
 			{
-				gameState->Player1.Direction.Y = -1.0f;
+				gameState->Entities[0].Direction.Y = -1.0f;
 			}
 			if(gameInput->GameControllers[controllerIndex].Left.EndedDown)
 			{
-				gameState->Player1.Direction.X = -1.0f;
+				gameState->Entities[0].Direction.X = -1.0f;
 			}
 			if(gameInput->GameControllers[controllerIndex].Right.EndedDown)
 			{
-				gameState->Player1.Direction.X = 1.0f;
+				gameState->Entities[0].Direction.X = 1.0f;
 			}
-			if((gameState->Player1.Direction.Y != 0.0f) && (gameState->Player1.Direction.X != 0.0f))
+			if((gameState->Entities[0].Direction.Y != 0.0f) && (gameState->Entities[0].Direction.X != 0.0f))
 			{
-				gameState->Player1.Direction *= 0.7071067811865475f;
+				gameState->Entities[0].Direction *= 0.7071067811865475f;
 			}
 		}
 
-		gameState->Player1.Acceleration = gameState->Player1.AccelerationMag * gameState->Player1.Direction;
+		gameState->Entities[0].Acceleration = gameState->Entities[0].AccelerationMag * gameState->Entities[0].Direction;
 	}
 
-	UpdatePlayer(&gameState->Player1, &gameState->dT, &world, gameState);
-	UpdateProjectile(&gameState->Projectile, &gameState->dT, &world, gameState);
+	UpdatePlayer(&gameState->Entities[0], &gameState->dT, &world, gameState);
+	UpdateProjectile(&gameState->Entities[1], &gameState->dT, &world, gameState);
 	
 	//Draw Tile map	
 	for(s32 y = 0; y <= world.CountY; y++)
@@ -578,9 +597,9 @@ internal void GameLoop(GameBackBuffer* buffer, GameInput* gameInput, GameMemory*
 	}
 
 
-	DebugDrawCircle(buffer, &playerColor, gameState->Player1.Position.X, gameState->Player1.Position.Y, gameState->Player1.CollisionRadius);		
+	DebugDrawCircle(buffer, &playerColor, gameState->Entities[0].Position.X, gameState->Entities[0].Position.Y, gameState->Entities[0].CollisionRadius);		
 
-	DebugDrawCircle(buffer, &playerColColor, gameState->Projectile.Position.X, gameState->Projectile.Position.Y, gameState->Projectile.CollisionRadius);		
+	DebugDrawCircle(buffer, &playerColColor, gameState->Entities[1].Position.X, gameState->Entities[1].Position.Y, gameState->Entities[1].CollisionRadius);		
 }
 
 
