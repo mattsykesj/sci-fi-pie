@@ -14,7 +14,7 @@ struct World
 {
 	f32 TilePixelLength = 60.0f;
 	f32 TilePuckLength = 1.35f;
-	f32 PucksToPixels;
+	f32 MetersToPixels;
 	u32 CountX;
 	u32 CountY;
 
@@ -107,7 +107,7 @@ internal void DebugDrawRect(GameBackBuffer* buffer, Color color,
 	}
 }
 
-internal void PutPixel(int x, int y, Color* color, GameBackBuffer* buffer)
+internal void DebugPutPixel(int x, int y, Color* color, GameBackBuffer* buffer)
 {
 	u32* bufferPixel = (u32*)((u8*)buffer->Memory + (x * buffer->BytesPerPixel) + (y * buffer->Pitch));
 	*bufferPixel = ((color->A << 24) | (color->R << 16) | (color->G << 8) | (color->B <<0));					
@@ -124,18 +124,17 @@ internal void DebugDrawCircle(GameBackBuffer* buffer, Color* color,
 
     y0 = buffer->Height - y0;
 
-
     while (x >= y)
     {
           	
-        PutPixel(x0 + x, y0 + y, color, buffer);
-        PutPixel(x0 + y, y0 + x, color, buffer);
-        PutPixel(x0 - y, y0 + x, color, buffer);
-        PutPixel(x0 - x, y0 + y, color, buffer);
-        PutPixel(x0 - x, y0 - y, color, buffer);
-        PutPixel(x0 - y, y0 - x, color, buffer);
-        PutPixel(x0 + y, y0 - x, color, buffer);
-        PutPixel(x0 + x, y0 - y, color, buffer);
+        DebugPutPixel(x0 + x, y0 + y, color, buffer);
+        DebugPutPixel(x0 + y, y0 + x, color, buffer);
+        DebugPutPixel(x0 - y, y0 + x, color, buffer);
+        DebugPutPixel(x0 - x, y0 + y, color, buffer);
+        DebugPutPixel(x0 - x, y0 - y, color, buffer);
+        DebugPutPixel(x0 - y, y0 - x, color, buffer);
+        DebugPutPixel(x0 + y, y0 - x, color, buffer);
+        DebugPutPixel(x0 + x, y0 - y, color, buffer);
 
         if (err <= 0)
         {
@@ -281,11 +280,13 @@ internal void HandleCollision(Entity* a, Entity* b, V2* r)
 		//TODO(matt): Buggy because of edge cases and no nice geometry yet
     	if(a->Type == EntityType_Projectile)
     	{
-    		a->Acceleration = a->Acceleration - (a->Bounciness * (Dot(a->Acceleration, (*r)) * (*r)));
+    		a->IsActive = false;
+    		// a->Acceleration = a->Acceleration - (a->Bounciness * (Dot(a->Acceleration, (*r)) * (*r)));
     	}
     	if(b->Type == EntityType_Projectile)
     	{
-    		b->Acceleration = b->Acceleration - (b->Bounciness * (Dot(b->Acceleration, (*r)) * (*r)));
+    		a->IsActive = false;
+    		// b->Acceleration = b->Acceleration - (b->Bounciness * (Dot(b->Acceleration, (*r)) * (*r)));
     	}
 
 	}
@@ -388,15 +389,15 @@ internal bool DoesCollide(Entity* a, Entity* b, V2* aDelta, f32* tMin, V2* r)
 	return collided;
 }
 
-internal void MoveEntity(Entity* entity, f32* dT, World* world, GameState* gameState)
+internal void MoveEntity(Entity* entity, GameState* gameState)
 {
-	entity->Velocity =  (entity->Velocity + (entity->Acceleration * (*dT))) * entity->Damping;
+	entity->Velocity =  (entity->Velocity + (entity->Acceleration * gameState->dT)) * entity->Damping;
 
 	V2 oldEntityPosition = entity->Position;
 
 	V2 newEntityPosition = (entity->Position) + 
-						   (entity->Acceleration * Square(*dT)) + 
-						   (entity->Velocity  * (*dT));
+						   (entity->Acceleration * Square(gameState->dT)) + 
+						   (entity->Velocity  * gameState->dT);
 
     // TilePosition playerTile = GetTilePosition(oldEntityPosition, world);
     // TilePosition newPlayerTile = GetTilePosition(newEntityPosition, world);
@@ -440,14 +441,14 @@ internal void MoveEntity(Entity* entity, f32* dT, World* world, GameState* gameS
 	}
 }
 
-internal void UpdatePlayer(Entity* player, f32* dT, World* world, GameState* gameState)
+internal void UpdatePlayer(Entity* player, GameState* gameState)
 {
-	MoveEntity(player, dT, world, gameState);
+	MoveEntity(player, gameState);
 }
 
-internal void UpdateProjectile(Entity* projectile, f32* dT, World* world, GameState* gameState)
+internal void UpdateProjectile(Entity* projectile, GameState* gameState)
 {
-	MoveEntity(projectile, dT, world, gameState);
+	MoveEntity(projectile, gameState);
 }
 
 internal void GameLoop(GameBackBuffer* buffer, GameInput* gameInput, GameMemory* gameMemory)
@@ -458,8 +459,8 @@ internal void GameLoop(GameBackBuffer* buffer, GameInput* gameInput, GameMemory*
 	world.CountX = 15;
 	world.CountY = 8;
 	world.Tiles = *TileMap1;
-	world.PucksToPixels = world.TilePixelLength / world.TilePuckLength;
-	world.TilePuckLength = world.TilePuckLength * world.PucksToPixels;
+	world.MetersToPixels = world.TilePixelLength / world.TilePuckLength;
+	world.TilePuckLength = world.TilePuckLength * world.MetersToPixels;
 
 	Color playerColor = CreateColor(0, 32, 32, 255);
 	Color playerColColor = CreateColor(0, 255, 0, 0);
@@ -469,26 +470,23 @@ internal void GameLoop(GameBackBuffer* buffer, GameInput* gameInput, GameMemory*
 		gameState->dT = 33.33f / 1000.0f;
 
 		gameState->Entities[0].Index = 0;	
-		gameState->Entities[0].Position = world.PucksToPixels* V2{2.5f, 2.5f};
-		gameState->Entities[0].AccelerationMag = 120.0f * world.PucksToPixels;
-		gameState->Entities[0].Width = 1.0f * world.PucksToPixels;
-		gameState->Entities[0].Height = 1.2f * world.PucksToPixels;
-		gameState->Entities[0].CollisionRadius = 0.5f * world.PucksToPixels;
+		gameState->Entities[0].Position = world.MetersToPixels* V2{2.5f, 2.5f};
+		gameState->Entities[0].Speed = 120.0f * world.MetersToPixels;
+		gameState->Entities[0].Width = 1.0f * world.MetersToPixels;
+		gameState->Entities[0].Height = 1.2f * world.MetersToPixels;
+		gameState->Entities[0].CollisionRadius = 0.5f * world.MetersToPixels;
 		gameState->Entities[0].Damping = 0.2f;
 		gameState->Entities[0].Bounciness = 1.0f;
 		gameState->Entities[0].Type = EntityType_Player;
 		gameState->Entities[0].Collider = ColliderType_Circle;
 
 		gameState->Entities[1].Index = 1;	
-		gameState->Entities[1].Position = world.PucksToPixels* V2{10.0f, 10.0f};
-		gameState->Entities[1].AccelerationMag = 180.0f * world.PucksToPixels;
-		gameState->Entities[1].Width = 0.8f * world.PucksToPixels;
-		gameState->Entities[1].Height = 0.8f * world.PucksToPixels;
+		gameState->Entities[1].Speed = 180.0f * world.MetersToPixels;
+		gameState->Entities[1].Width = 0.8f * world.MetersToPixels;
+		gameState->Entities[1].Height = 0.8f * world.MetersToPixels;
 		gameState->Entities[1].CollisionRadius = gameState->Entities[1].Width / 2;
 		gameState->Entities[1].Damping = 0.2f;
-		gameState->Entities[1].Direction = V2 { -0.5f, 0.5f };
 		gameState->Entities[1].Bounciness = 2.0f;
-		gameState->Entities[1].Acceleration = gameState->Entities[1].Direction * gameState->Entities[1].AccelerationMag;
 		gameState->Entities[1].Type = EntityType_Projectile;
 		gameState->Entities[1].Collider = ColliderType_Circle;
 
@@ -518,10 +516,11 @@ internal void GameLoop(GameBackBuffer* buffer, GameInput* gameInput, GameMemory*
 		gameMemory->IsInitialized = true;
 	}
 
-	//Get Input from all controllers
+	//TODO(matt): Get Input from all controllers
+	gameState->Entities[0].Direction = gameState->Entities[0].Direction;
 	gameState->Entities[0].Direction = V2{ 0,0 };
 
-	//Make controllers specific to player entities 
+	//TODO(matt): Make controllers specific to player entities 
 	for(s32 controllerIndex = 0; controllerIndex < MAX_CONTROLLERS; controllerIndex++)
 	{
 		if(gameInput->GameControllers[controllerIndex].isAnalogue)
@@ -540,6 +539,7 @@ internal void GameLoop(GameBackBuffer* buffer, GameInput* gameInput, GameMemory*
 				f32 nY = gameInput->GameControllers[controllerIndex].StickY / sMag;
 
 				gameState->Entities[0].Direction = V2{nX, nY};
+				gameState->Entities[0].Facing = V2{nX, nY};
 			}
 		}
 		else
@@ -566,11 +566,26 @@ internal void GameLoop(GameBackBuffer* buffer, GameInput* gameInput, GameMemory*
 			}
 		}
 
-		gameState->Entities[0].Acceleration = gameState->Entities[0].AccelerationMag * gameState->Entities[0].Direction;
+		if(gameInput->GameControllers[controllerIndex].Action1.EndedDown)
+		{
+			gameState->Entities[1].IsActive = true;
+			if(gameState->Entities[1].Direction.X == 0 && gameState->Entities[1].Direction.Y == 0)
+			{
+				gameState->Entities[1].Direction = gameState->Entities[0].Facing;				
+			}
+			else
+			{
+				gameState->Entities[1].Direction = gameState->Entities[0].Direction;				
+			}
+			gameState->Entities[1].Position = gameState->Entities[0].Position + (gameState->Entities[1].Direction	* gameState->Entities[0].CollisionRadius * 2);
+			gameState->Entities[1].Acceleration = gameState->Entities[1].Direction * gameState->Entities[1].Speed;
+		}
+
+		gameState->Entities[0].Acceleration = gameState->Entities[0].Speed * gameState->Entities[0].Direction;
 	}
 
-	UpdatePlayer(&gameState->Entities[0], &gameState->dT, &world, gameState);
-	UpdateProjectile(&gameState->Entities[1], &gameState->dT, &world, gameState);
+	UpdatePlayer(&gameState->Entities[0], gameState);
+	UpdateProjectile(&gameState->Entities[1], gameState);
 	
 	//Draw Tile map	
 	for(s32 y = 0; y <= world.CountY; y++)
@@ -599,7 +614,10 @@ internal void GameLoop(GameBackBuffer* buffer, GameInput* gameInput, GameMemory*
 
 	DebugDrawCircle(buffer, &playerColor, gameState->Entities[0].Position.X, gameState->Entities[0].Position.Y, gameState->Entities[0].CollisionRadius);		
 
-	DebugDrawCircle(buffer, &playerColColor, gameState->Entities[1].Position.X, gameState->Entities[1].Position.Y, gameState->Entities[1].CollisionRadius);		
+	if(gameState->Entities[1].IsActive == true)
+	{
+		DebugDrawCircle(buffer, &playerColColor, gameState->Entities[1].Position.X, gameState->Entities[1].Position.Y, gameState->Entities[1].CollisionRadius);		
+	}
 }
 
 

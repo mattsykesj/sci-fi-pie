@@ -95,6 +95,7 @@ enum ColliderType
 struct Entity
 {
 	u32 Index;
+	bool IsActive;
 
 	EntityType Type;
 
@@ -102,9 +103,10 @@ struct Entity
 	V2 Position;
 	V2 Velocity;
 	V2 Acceleration;
+	V2 Facing;
 
 	f32 Damping;
-	f32 AccelerationMag;
+	f32 Speed;
 
 	f32 Bounciness;
 
