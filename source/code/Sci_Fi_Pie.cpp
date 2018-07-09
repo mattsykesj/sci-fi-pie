@@ -10,15 +10,21 @@
 #define StickDeadZone 8000
 #define StickMaxValue 32767
 
+struct Tile
+{
+	u32 TileType; 
+	bool HasGeometryLoaded;
+};
+
 struct World
 {
 	f32 TilePixelLength = 60.0f;
-	f32 TilePuckLength = 1.35f;
+	f32 TileMeterLength = 1.35f;
 	f32 MetersToPixels;
 	u32 CountX;
 	u32 CountY;
 
-	u32* Tiles;
+	Tile* Tiles;
 };
 
 struct TilePosition
@@ -27,17 +33,17 @@ struct TilePosition
 	u32 Y;
 };
 
-static u32 TileMap1[9][16] = 
+static Tile TileMap1[9][16] = 
 {
-	{1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
-	{1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1},
-	{1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1},
-	{1, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1},
-	{1, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1},
-	{1, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1},
-	{1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1},
-	{1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1},
-	{1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
+	{{1, false}, {1, false}, {1, false}, {1, false}, {1, false}, {1, false}, {1, false}, {1, false}, {1, false}, {1, false}, {1, false}, {1, false}, {1, false}, {1, false}, {1, false}, {1, false}},
+	{{1, false}, {0, false}, {0, false}, {0, false}, {0, false}, {0, false}, {0, false}, {1, false}, {0, false}, {0, false}, {0, false}, {0, false}, {0, false}, {0, false}, {0, false}, {1, false}},
+	{{1, false}, {0, false}, {0, false}, {0, false}, {0, false}, {0, false}, {0, false}, {0, false}, {0, false}, {0, false}, {0, false}, {0, false}, {0, false}, {0, false}, {0, false}, {1, false}},
+	{{1, false}, {0, false}, {0, false}, {1, false}, {0, false}, {0, false}, {0, false}, {1, false}, {0, false}, {0, false}, {0, false}, {1, false}, {0, false}, {0, false}, {0, false}, {1, false}},
+	{{1, false}, {0, false}, {0, false}, {1, false}, {0, false}, {0, false}, {0, false}, {1, false}, {0, false}, {0, false}, {0, false}, {1, false}, {0, false}, {0, false}, {0, false}, {1, false}},
+	{{1, false}, {0, false}, {0, false}, {1, false}, {0, false}, {0, false}, {0, false}, {1, false}, {0, false}, {0, false}, {0, false}, {1, false}, {0, false}, {0, false}, {0, false}, {1, false}},
+	{{1, false}, {0, false}, {0, false}, {0, false}, {0, false}, {0, false}, {0, false}, {0, false}, {0, false}, {0, false}, {0, false}, {0, false}, {0, false}, {0, false}, {0, false}, {1, false}},
+	{{1, false}, {0, false}, {0, false}, {0, false}, {0, false}, {0, false}, {0, false}, {0, false}, {0, false}, {0, false}, {0, false}, {0, false}, {0, false}, {0, false}, {0, false}, {1, false}},
+	{{1, false}, {1, false}, {1, false}, {1, false}, {1, false}, {1, false}, {1, false}, {1, false}, {1, false}, {1, false}, {1, false}, {1, false}, {1, false}, {1, false}, {1, false}, {1, false}},
 };
 
 internal Color CreateColor(u8 alpha, u8 red, u8 green, u8 blue)
@@ -232,8 +238,8 @@ internal V2 GetTileCenter(u32 x, u32 y, World* world)
 {
 	V2 result = {};
 
-	result.X = (world->TilePuckLength * x) + (0.5f * world->TilePuckLength);
-	result.Y = (world->TilePuckLength * y) + (0.5f * world->TilePuckLength);
+	result.X = (world->TileMeterLength * x) + (0.5f * world->TileMeterLength);
+	result.Y = (world->TileMeterLength * y) + (0.5f * world->TileMeterLength);
 
 	return result;
 }
@@ -241,8 +247,8 @@ internal V2 GetTileCenter(u32 x, u32 y, World* world)
 internal TilePosition GetTilePosition(V2 pos, World* world)
 {
 	TilePosition result = {};
-	result.X = Truncatef32(pos.X / world->TilePuckLength);
-	result.Y = Truncatef32(pos.Y / world->TilePuckLength);
+	result.X = Truncatef32(pos.X / world->TileMeterLength);
+	result.Y = Truncatef32(pos.Y / world->TileMeterLength);
 	return result;
 }
 
@@ -292,7 +298,7 @@ internal void HandleCollision(Entity* a, Entity* b, V2* r)
 	}
 }
 
-internal bool CircleVsSquareCollision(Entity* a, Entity* b, V2* aDelta, f32* tMin, V2* r) 
+internal bool CircleColliderVsSquareCollider(Entity* a, Entity* b, V2* aDelta, f32* tMin, V2* r) 
 {
 	bool collided = false;
 
@@ -383,7 +389,7 @@ internal bool DoesCollide(Entity* a, Entity* b, V2* aDelta, f32* tMin, V2* r)
 
 	if(a->Collider == ColliderType_Circle && b->Collider == ColliderType_Box)
 	{
-		collided = CircleVsSquareCollision(a, b, aDelta, tMin, r);
+		collided = CircleColliderVsSquareCollider(a, b, aDelta, tMin, r);
 	}
 
 	return collided;
@@ -459,8 +465,8 @@ internal void GameLoop(GameBackBuffer* buffer, GameInput* gameInput, GameMemory*
 	world.CountX = 15;
 	world.CountY = 8;
 	world.Tiles = *TileMap1;
-	world.MetersToPixels = world.TilePixelLength / world.TilePuckLength;
-	world.TilePuckLength = world.TilePuckLength * world.MetersToPixels;
+	world.MetersToPixels = world.TilePixelLength / world.TileMeterLength;
+	world.TileMeterLength = world.TileMeterLength * world.MetersToPixels;
 
 	Color playerColor = CreateColor(0, 32, 32, 255);
 	Color playerColColor = CreateColor(0, 255, 0, 0);
@@ -493,20 +499,34 @@ internal void GameLoop(GameBackBuffer* buffer, GameInput* gameInput, GameMemory*
 		u32 index = 2;
 		for(s32 y = 0; y <= world.CountY; y++)
 		{
-
 			for(s32 x = 0; x <= world.CountX; x++)
 			{
-				if(TileMap1[y][x] == 1)
+				if(TileMap1[y][x].TileType == 1 && TileMap1[y][x].HasGeometryLoaded == false)
 				{
+					TileMap1[y][x].HasGeometryLoaded = true;
+
 					Entity* wall = &gameState->Entities[index];
 					wall->Position = GetTileCenter(x, y, &world);
-					wall->Width = world.TilePuckLength;
-					wall->Height = world.TilePuckLength;
+					wall->Width = world.TileMeterLength;
+					wall->Height = world.TileMeterLength;
 					wall->Type = EntityType_Wall;
 					wall->Index = index;
 					wall->Collider = ColliderType_Box;
-					wall->CollisionWidth = world.TilePuckLength;
-					wall->CollisionHeight = world.TilePuckLength;
+					wall->CollisionWidth = world.TileMeterLength;
+					wall->CollisionHeight = world.TileMeterLength;
+
+					//TODO(matt)FIX THIS!!
+
+					u32 wallCount = 1;
+					while(TileMap1[y + wallCount][x].TileType == 1)
+					{
+						TileMap1[y + wallCount][x].HasGeometryLoaded = true;
+
+                        wall->Position.Y += world.TileMeterLength / 2;
+						wall->CollisionHeight += world.TileMeterLength;
+						wall->Height += world.TileMeterLength;
+						wallCount++;
+					}
 
 					index++;
 				}
@@ -592,25 +612,24 @@ internal void GameLoop(GameBackBuffer* buffer, GameInput* gameInput, GameMemory*
 	{
 		for(s32 x = 0; x <= world.CountX; x++)
 		{
-			if(TileMap1[y][x] == 1)
+			if(TileMap1[y][x].TileType == 1)
 			{
 				DebugDrawRect(buffer, 
 							  CreateColor(0, 60, 60, 60), 
 							  GetTileCenter(x, y, &world),
-							  world.TilePuckLength - 1.0f, 
-							  world.TilePuckLength - 1.0f);
+							  world.TileMeterLength - 1.0f, 
+							  world.TileMeterLength - 1.0f);
 			}
-			else if(TileMap1[y][x] == 0)
+			else if(TileMap1[y][x].TileType == 0)
 			{
 				DebugDrawRect(buffer, 
 							  CreateColor(0, 240, 240, 240), 
 							  GetTileCenter(x, y, &world),
-							  world.TilePuckLength, 
-							  world.TilePuckLength);
+							  world.TileMeterLength, 
+							  world.TileMeterLength);
 			}
 		}
 	}
-
 
 	DebugDrawCircle(buffer, &playerColor, gameState->Entities[0].Position.X, gameState->Entities[0].Position.Y, gameState->Entities[0].CollisionRadius);		
 
