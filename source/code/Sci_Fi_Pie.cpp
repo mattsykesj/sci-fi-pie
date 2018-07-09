@@ -39,7 +39,7 @@ static Tile TileMap1[9][16] =
 	{{1, false}, {0, false}, {0, false}, {0, false}, {0, false}, {0, false}, {0, false}, {1, false}, {0, false}, {0, false}, {0, false}, {0, false}, {0, false}, {0, false}, {0, false}, {1, false}},
 	{{1, false}, {0, false}, {0, false}, {0, false}, {0, false}, {0, false}, {0, false}, {0, false}, {0, false}, {0, false}, {0, false}, {0, false}, {0, false}, {0, false}, {0, false}, {1, false}},
 	{{1, false}, {0, false}, {0, false}, {1, false}, {0, false}, {0, false}, {0, false}, {1, false}, {0, false}, {0, false}, {0, false}, {1, false}, {0, false}, {0, false}, {0, false}, {1, false}},
-	{{1, false}, {0, false}, {0, false}, {1, false}, {0, false}, {0, false}, {0, false}, {1, false}, {0, false}, {0, false}, {0, false}, {1, false}, {0, false}, {0, false}, {0, false}, {1, false}},
+	{{1, false}, {0, false}, {0, false}, {1, false}, {0, false}, {1, false}, {0, false}, {1, false}, {0, false}, {1, false}, {0, false}, {1, false}, {0, false}, {1, false}, {0, false}, {1, false}},
 	{{1, false}, {0, false}, {0, false}, {1, false}, {0, false}, {0, false}, {0, false}, {1, false}, {0, false}, {0, false}, {0, false}, {1, false}, {0, false}, {0, false}, {0, false}, {1, false}},
 	{{1, false}, {0, false}, {0, false}, {0, false}, {0, false}, {0, false}, {0, false}, {0, false}, {0, false}, {0, false}, {0, false}, {0, false}, {0, false}, {0, false}, {0, false}, {1, false}},
 	{{1, false}, {0, false}, {0, false}, {0, false}, {0, false}, {0, false}, {0, false}, {0, false}, {0, false}, {0, false}, {0, false}, {0, false}, {0, false}, {0, false}, {0, false}, {1, false}},
@@ -286,13 +286,13 @@ internal void HandleCollision(Entity* a, Entity* b, V2* r)
 		//TODO(matt): Buggy because of edge cases and no nice geometry yet
     	if(a->Type == EntityType_Projectile)
     	{
-    		a->IsActive = false;
-    		// a->Acceleration = a->Acceleration - (a->Bounciness * (Dot(a->Acceleration, (*r)) * (*r)));
+    		// a->IsActive = false;
+    		a->Acceleration = a->Acceleration - (a->Bounciness * (Dot(a->Acceleration, (*r)) * (*r)));
     	}
     	if(b->Type == EntityType_Projectile)
     	{
-    		a->IsActive = false;
-    		// b->Acceleration = b->Acceleration - (b->Bounciness * (Dot(b->Acceleration, (*r)) * (*r)));
+    		// a->IsActive = false;
+    		b->Acceleration = b->Acceleration - (b->Bounciness * (Dot(b->Acceleration, (*r)) * (*r)));
     	}
 
 	}
@@ -303,40 +303,40 @@ internal bool CircleColliderVsSquareCollider(Entity* a, Entity* b, V2* aDelta, f
 	bool collided = false;
 
 	f32 collisionDiameterX = b->CollisionWidth + (a->CollisionRadius * 2);
-	f32 collisionDiameterY = b->CollisionWidth + (a->CollisionRadius * 2); 
+	f32 collisionDiameterY = b->CollisionHeight + (a->CollisionRadius * 2); 
 
 	V2 tileMin = -0.5f * V2{collisionDiameterX, collisionDiameterY};
 	V2 tileMax =  0.5f * V2{collisionDiameterX, collisionDiameterY};  
 
-	V2 playerRelativePos = a->Position - b->Position;
-	V2 newPlayerRelativePos = (a->Position + *aDelta) - b->Position;
+	V2 entityRelativePos = a->Position - b->Position;
+	V2 newEntityRelativePos = (a->Position + *aDelta) - b->Position;
 	
-	if(TestEdge(aDelta->X, aDelta->Y, playerRelativePos.X, playerRelativePos.Y, tileMax.X,
+	if(TestEdge(aDelta->X, aDelta->Y, entityRelativePos.X, entityRelativePos.Y, tileMax.X,
 		 tileMin.Y + a->CollisionRadius - 0.1f, tileMax.Y - a->CollisionRadius + 0.1f, tMin))
 	{
 		*r = V2{1, 0};
 		collided = true;
 	}
-	if(TestEdge(aDelta->X, aDelta->Y, playerRelativePos.X, playerRelativePos.Y, tileMin.X, 
+	if(TestEdge(aDelta->X, aDelta->Y, entityRelativePos.X, entityRelativePos.Y, tileMin.X, 
 		tileMin.Y + a->CollisionRadius - 0.1f, tileMax.Y - a->CollisionRadius + 0.1f, tMin))
 	{
 		*r = V2{-1, 0};
 		collided = true;
 	}					
-	if(TestEdge(aDelta->Y, aDelta->X, playerRelativePos.Y, playerRelativePos.X, tileMax.Y, 
+	if(TestEdge(aDelta->Y, aDelta->X, entityRelativePos.Y, entityRelativePos.X, tileMax.Y, 
 		tileMin.X + a->CollisionRadius, tileMax.X - a->CollisionRadius, tMin))
 	{
 		*r = V2{0, 1};
 		collided = true;
 	}					
-	if(TestEdge(aDelta->Y, aDelta->X, playerRelativePos.Y, playerRelativePos.X, tileMin.Y, 
+	if(TestEdge(aDelta->Y, aDelta->X, entityRelativePos.Y, entityRelativePos.X, tileMin.Y, 
 		tileMin.X + a->CollisionRadius, tileMax.X - a->CollisionRadius, tMin))
 	{
 		*r = V2{0, -1};
 		collided = true;
 	}
 
-	if(TestCorner(playerRelativePos, newPlayerRelativePos, aDelta, a->CollisionRadius, r, tMin, 
+	if(TestCorner(entityRelativePos, newEntityRelativePos, aDelta, a->CollisionRadius, r, tMin, 
 				(0.5f * b->CollisionWidth),
 				(0.5f * b->CollisionWidth) + a->CollisionRadius,
 				(0.5f * b->CollisionHeight), 
@@ -347,7 +347,7 @@ internal bool CircleColliderVsSquareCollider(Entity* a, Entity* b, V2* aDelta, f
 		collided = true;
 	}
 
-	if(TestCorner(playerRelativePos, newPlayerRelativePos, aDelta, a->CollisionRadius, r, tMin, 
+	if(TestCorner(entityRelativePos, newEntityRelativePos, aDelta, a->CollisionRadius, r, tMin, 
 				(-0.5f * b->CollisionWidth) - a->CollisionRadius,
 				(-0.5f * b->CollisionWidth),
 				(0.5f * b->CollisionHeight), 
@@ -358,7 +358,7 @@ internal bool CircleColliderVsSquareCollider(Entity* a, Entity* b, V2* aDelta, f
 		collided = true;
 	}
 
-	if(TestCorner(playerRelativePos, newPlayerRelativePos, aDelta, a->CollisionRadius, r, tMin, 
+	if(TestCorner(entityRelativePos, newEntityRelativePos, aDelta, a->CollisionRadius, r, tMin, 
 				 (0.5f * b->CollisionWidth),
 				 (0.5f * b->CollisionWidth) + a->CollisionRadius,
 				 (-0.5f * b->CollisionHeight) - a->CollisionRadius,
@@ -369,7 +369,7 @@ internal bool CircleColliderVsSquareCollider(Entity* a, Entity* b, V2* aDelta, f
 		collided = true;
 	}
 
-	if(TestCorner(playerRelativePos, newPlayerRelativePos, aDelta, a->CollisionRadius, r, tMin, 
+	if(TestCorner(entityRelativePos, newEntityRelativePos, aDelta, a->CollisionRadius, r, tMin, 
 				 (-0.5f * b->CollisionWidth) - a->CollisionRadius,
 				 (-0.5f * b->CollisionWidth),
 				 (-0.5f * b->CollisionHeight) - a->CollisionRadius,
@@ -495,8 +495,13 @@ internal void GameLoop(GameBackBuffer* buffer, GameInput* gameInput, GameMemory*
 		gameState->Entities[1].Bounciness = 2.0f;
 		gameState->Entities[1].Type = EntityType_Projectile;
 		gameState->Entities[1].Collider = ColliderType_Circle;
+		gameState->Entities[1].Direction = V2{0.7f, 0.7f};
+		gameState->Entities[1].Acceleration = gameState->Entities[1].Direction * gameState->Entities[1].Speed;
+		gameState->Entities[1].IsActive = true;
+		gameState->Entities[1].Position = GetTileCenter(1, 2, &world);
 
 		u32 index = 2;
+
 		for(s32 y = 0; y <= world.CountY; y++)
 		{
 			for(s32 x = 0; x <= world.CountX; x++)
@@ -517,15 +522,41 @@ internal void GameLoop(GameBackBuffer* buffer, GameInput* gameInput, GameMemory*
 
 					//TODO(matt)FIX THIS!!
 
-					u32 wallCount = 1;
-					while(TileMap1[y + wallCount][x].TileType == 1)
+					u32 wallCountY = 1;
+					u32 wallCountX = 1;
+
+					while(TileMap1[y + wallCountY][x].TileType == 1)
 					{
-						TileMap1[y + wallCount][x].HasGeometryLoaded = true;
+						TileMap1[y + wallCountY][x].HasGeometryLoaded = true;
 
                         wall->Position.Y += world.TileMeterLength / 2;
 						wall->CollisionHeight += world.TileMeterLength;
 						wall->Height += world.TileMeterLength;
-						wallCount++;
+						wallCountY++;
+					}
+
+					if(TileMap1[y][x + wallCountX].TileType == 1)
+					{
+						index++;
+						wall = &gameState->Entities[index];
+						wall->Position = GetTileCenter(x, y, &world);
+						wall->Width = world.TileMeterLength;
+						wall->Height = world.TileMeterLength;
+						wall->Type = EntityType_Wall;
+						wall->Index = index;
+						wall->Collider = ColliderType_Box;
+						wall->CollisionWidth = world.TileMeterLength;
+						wall->CollisionHeight = world.TileMeterLength;
+
+						while(TileMap1[y][x + wallCountX].TileType == 1)
+						{
+							TileMap1[y][x  + wallCountX].HasGeometryLoaded = true;
+
+	                        wall->Position.X += world.TileMeterLength / 2;
+							wall->CollisionWidth += world.TileMeterLength;
+							wall->Width += world.TileMeterLength;
+							wallCountX++;
+						}					
 					}
 
 					index++;
