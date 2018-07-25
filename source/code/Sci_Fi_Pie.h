@@ -4,6 +4,9 @@
 
 #define MAX_CONTROLLERS 5
 #define KEYBOARD_CONTROLLER 4
+#define Minimum(A, B) ((A < B) ? (A) : (B))
+#define Maximum(A, B) ((A > B) ? (A) : (B))
+#define ArrayCount( array ) ( sizeof( array ) / sizeof( array[0] ))
 
 struct GameBackBuffer
 {
