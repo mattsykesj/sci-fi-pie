@@ -466,7 +466,7 @@ internal GameMemory Win32CreateGameMemory()
 {
 	GameMemory gameMemory = {};
 	gameMemory.MainMemorySize = MegaBytes((u64)64);
-	gameMemory.TempMemorySize = GigaBytes((u64)1); 
+	gameMemory.TempMemorySize = MegaBytes((u64)256); 
 	gameMemory.MainMemory = VirtualAlloc(0, gameMemory.MainMemorySize, MEM_COMMIT, PAGE_READWRITE);
 	gameMemory.TempMemory = VirtualAlloc(0, gameMemory.TempMemorySize, MEM_COMMIT, PAGE_READWRITE);
 

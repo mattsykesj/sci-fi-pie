@@ -36,13 +36,13 @@ struct TilePosition
 static Tile TileMap1[9][16] = 
 {
 	{{1, false}, {1, false}, {1, false}, {1, false}, {1, false}, {1, false}, {1, false}, {1, false}, {1, false}, {1, false}, {1, false}, {1, false}, {1, false}, {1, false}, {1, false}, {1, false}},
-	{{1, false}, {0, false}, {0, false}, {0, false}, {0, false}, {0, false}, {0, false}, {1, false}, {0, false}, {0, false}, {0, false}, {0, false}, {0, false}, {0, false}, {0, false}, {1, false}},
-	{{1, false}, {0, false}, {0, false}, {0, false}, {0, false}, {0, false}, {0, false}, {0, false}, {0, false}, {0, false}, {0, false}, {0, false}, {0, false}, {0, false}, {0, false}, {1, false}},
-	{{1, false}, {0, false}, {0, false}, {1, false}, {0, false}, {0, false}, {0, false}, {1, false}, {0, false}, {0, false}, {0, false}, {1, false}, {0, false}, {0, false}, {0, false}, {1, false}},
-	{{1, false}, {0, false}, {0, false}, {1, false}, {0, false}, {1, false}, {0, false}, {1, false}, {0, false}, {1, false}, {0, false}, {1, false}, {0, false}, {1, false}, {0, false}, {1, false}},
-	{{1, false}, {0, false}, {0, false}, {1, false}, {0, false}, {0, false}, {0, false}, {1, false}, {0, false}, {0, false}, {0, false}, {1, false}, {0, false}, {0, false}, {0, false}, {1, false}},
-	{{1, false}, {0, false}, {0, false}, {0, false}, {0, false}, {0, false}, {0, false}, {0, false}, {0, false}, {0, false}, {0, false}, {0, false}, {0, false}, {0, false}, {0, false}, {1, false}},
-	{{1, false}, {0, false}, {0, false}, {0, false}, {0, false}, {0, false}, {0, false}, {0, false}, {0, false}, {0, false}, {0, false}, {0, false}, {0, false}, {0, false}, {0, false}, {1, false}},
+	{{1, false}, {0, false}, {0, false}, {1, false}, {0, false}, {0, false}, {0, false}, {0, false}, {0, false}, {0, false}, {0, false}, {0, false}, {0, false}, {0, false}, {0, false}, {1, false}},
+	{{1, false}, {0, false}, {0, false}, {0, false}, {0, false}, {1, false}, {0, false}, {0, false}, {0, false}, {0, false}, {0, false}, {0, false}, {1, false}, {0, false}, {0, false}, {1, false}},
+	{{1, false}, {0, false}, {1, false}, {0, false}, {0, false}, {0, false}, {0, false}, {1, false}, {0, false}, {0, false}, {1, false}, {0, false}, {1, false}, {0, false}, {0, false}, {1, false}},
+	{{1, false}, {0, false}, {1, false}, {1, false}, {0, false}, {0, false}, {1, false}, {1, false}, {1, false}, {0, false}, {0, false}, {0, false}, {1, false}, {0, false}, {1, false}, {1, false}},
+	{{1, false}, {0, false}, {1, false}, {0, false}, {0, false}, {0, false}, {0, false}, {1, false}, {0, false}, {0, false}, {1, false}, {0, false}, {1, false}, {0, false}, {0, false}, {1, false}},
+	{{1, false}, {0, false}, {0, false}, {0, false}, {0, false}, {0, false}, {0, false}, {0, false}, {0, false}, {0, false}, {0, false}, {0, false}, {1, false}, {0, false}, {0, false}, {1, false}},
+	{{1, false}, {0, false}, {0, false}, {1, false}, {0, false}, {0, false}, {0, false}, {0, false}, {0, false}, {0, false}, {0, false}, {0, false}, {0, false}, {0, false}, {0, false}, {1, false}},
 	{{1, false}, {1, false}, {1, false}, {1, false}, {1, false}, {1, false}, {1, false}, {1, false}, {1, false}, {1, false}, {1, false}, {1, false}, {1, false}, {1, false}, {1, false}, {1, false}},
 };
 
@@ -502,6 +502,8 @@ internal void GameLoop(GameBackBuffer* buffer, GameInput* gameInput, GameMemory*
 
 		u32 index = 2;
 
+		//Load entities ( just walls right now )
+		//TODO(matt): Tidy this up.... 
 		for(s32 y = 0; y <= world.CountY; y++)
 		{
 			for(s32 x = 0; x <= world.CountX; x++)
@@ -520,14 +522,20 @@ internal void GameLoop(GameBackBuffer* buffer, GameInput* gameInput, GameMemory*
 					wall->CollisionWidth = world.TileMeterLength;
 					wall->CollisionHeight = world.TileMeterLength;
 
-					//TODO(matt)FIX THIS!!
-
 					u32 wallCountY = 1;
 					u32 wallCountX = 1;
 
-					while(TileMap1[y + wallCountY][x].TileType == 1)
+					bool HasVerticalMapped = false;
+
+					while(TileMap1[y + wallCountY][x].TileType == 1 &&
+						 (y + wallCountY <= world.CountY))
 					{
 						TileMap1[y + wallCountY][x].HasGeometryLoaded = true;
+						if(HasVerticalMapped == false)
+						{
+							HasVerticalMapped = true;
+						}
+
 
                         wall->Position.Y += world.TileMeterLength / 2;
 						wall->CollisionHeight += world.TileMeterLength;
@@ -535,9 +543,13 @@ internal void GameLoop(GameBackBuffer* buffer, GameInput* gameInput, GameMemory*
 						wallCountY++;
 					}
 
-					if(TileMap1[y][x + wallCountX].TileType == 1)
+					if(TileMap1[y][x + wallCountX].TileType == 1 &&
+				     	(x + wallCountX <= world.CountX))				
 					{
-						index++;
+						if(HasVerticalMapped == true)
+						{
+							index++;
+						}
 						wall = &gameState->Entities[index];
 						wall->Position = GetTileCenter(x, y, &world);
 						wall->Width = world.TileMeterLength;
@@ -548,7 +560,8 @@ internal void GameLoop(GameBackBuffer* buffer, GameInput* gameInput, GameMemory*
 						wall->CollisionWidth = world.TileMeterLength;
 						wall->CollisionHeight = world.TileMeterLength;
 
-						while(TileMap1[y][x + wallCountX].TileType == 1)
+						while(TileMap1[y][x + wallCountX].TileType == 1 &&
+						     (x + wallCountX <= world.CountX))
 						{
 							TileMap1[y][x  + wallCountX].HasGeometryLoaded = true;
 
@@ -638,20 +651,20 @@ internal void GameLoop(GameBackBuffer* buffer, GameInput* gameInput, GameMemory*
 	UpdatePlayer(&gameState->Entities[0], gameState);
 	UpdateProjectile(&gameState->Entities[1], gameState);
 	
-	//Draw Tile map	
+	// Draw Tile map	
 	for(s32 y = 0; y <= world.CountY; y++)
 	{
 		for(s32 x = 0; x <= world.CountX; x++)
 		{
-			if(TileMap1[y][x].TileType == 1)
-			{
-				DebugDrawRect(buffer, 
-							  CreateColor(0, 60, 60, 60), 
-							  GetTileCenter(x, y, &world),
-							  world.TileMeterLength - 1.0f, 
-							  world.TileMeterLength - 1.0f);
-			}
-			else if(TileMap1[y][x].TileType == 0)
+			// if(TileMap1[y][x].TileType == 1)
+			// {
+			// 	DebugDrawRect(buffer, 
+			// 				  CreateColor(0, 60, 60, 60), 
+			// 				  GetTileCenter(x, y, &world),
+			// 				  world.TileMeterLength - 1.0f, 
+			// 				  world.TileMeterLength - 1.0f);
+			// }
+			if(TileMap1[y][x].TileType == 0)
 			{
 				DebugDrawRect(buffer, 
 							  CreateColor(0, 240, 240, 240), 
@@ -659,6 +672,18 @@ internal void GameLoop(GameBackBuffer* buffer, GameInput* gameInput, GameMemory*
 							  world.TileMeterLength, 
 							  world.TileMeterLength);
 			}
+		}
+	}
+
+	// Draw entities
+	//TODO(matt)do we need to draw static entities every frame? does it matter?
+	for(u32 entityIndex = 0; entityIndex < ArrayCount(gameState->Entities); entityIndex++)
+	{
+		Entity* entity = &gameState->Entities[entityIndex];
+
+		if(entity->Type == EntityType_Wall)
+		{
+			DebugDrawRect(buffer,  CreateColor(0, 60, 60, 60), entity->Position, entity->Width, entity->Height);
 		}
 	}
 
