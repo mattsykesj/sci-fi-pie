@@ -110,7 +110,6 @@ internal void HandleCollision(Entity* a, Entity* b, V2* r)
 	if(a->Type == EntityType_Projectile && b->Type == EntityType_Wall ||
 		b->Type == EntityType_Projectile && a->Type == EntityType_Wall)
 	{
-		//TODO(matt): Buggy because of edge cases and no nice geometry yet
     	if(a->Type == EntityType_Projectile)
     	{
     		// a->IsActive = false;

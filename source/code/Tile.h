@@ -5,11 +5,11 @@ struct TilePosition
 	u32 X;
 	u32 Y;
 };
-
+//TODO(matt): Make tile type an enum? do we need entity types and tile types?
 struct Tile
 {
 	u32 TileType; 
-	bool HasGeometryLoaded;
+	bool IsLoaded;
 	TilePosition TilePosition;
 };
 

@@ -81,6 +81,7 @@ enum EntityType
 	EntityType_Wall,
 	EntityType_Player,
 	EntityType_Projectile,
+	EntityType_Ground,
 
 	EntityType_Count
 };

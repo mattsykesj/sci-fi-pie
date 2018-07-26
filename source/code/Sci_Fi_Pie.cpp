@@ -7,18 +7,17 @@
 #define StickDeadZone 8000
 #define StickMaxValue 32767
 
-
 static Tile TileMap1[9][16] = 
 {
-	{{1, false}, {1, false}, {1, false}, {1, false}, {1, false}, {1, false}, {1, false}, {1, false}, {1, false}, {1, false}, {1, false}, {1, false}, {1, false}, {1, false}, {1, false}, {1, false}},
-	{{1, false}, {0, false}, {0, false}, {1, false}, {0, false}, {0, false}, {0, false}, {0, false}, {0, false}, {0, false}, {0, false}, {0, false}, {0, false}, {0, false}, {0, false}, {1, false}},
-	{{1, false}, {0, false}, {0, false}, {0, false}, {0, false}, {1, false}, {0, false}, {0, false}, {0, false}, {0, false}, {0, false}, {0, false}, {1, false}, {0, false}, {0, false}, {1, false}},
-	{{1, false}, {0, false}, {1, false}, {0, false}, {0, false}, {0, false}, {0, false}, {1, false}, {0, false}, {0, false}, {1, false}, {0, false}, {1, false}, {0, false}, {0, false}, {1, false}},
-	{{1, false}, {0, false}, {1, false}, {1, false}, {0, false}, {0, false}, {1, false}, {1, false}, {1, false}, {0, false}, {0, false}, {0, false}, {1, false}, {0, false}, {1, false}, {1, false}},
-	{{1, false}, {0, false}, {1, false}, {0, false}, {0, false}, {0, false}, {0, false}, {1, false}, {0, false}, {0, false}, {1, false}, {0, false}, {1, false}, {0, false}, {0, false}, {1, false}},
-	{{1, false}, {0, false}, {0, false}, {0, false}, {0, false}, {0, false}, {0, false}, {0, false}, {0, false}, {0, false}, {0, false}, {0, false}, {1, false}, {0, false}, {0, false}, {1, false}},
-	{{1, false, {0,1}}, {0, false, {1,1}}, {0, false, {2,1}}, {1, false , {3,1}}, {0, false, {4,1}}, {0, false, {5,1}}, {0, false, {6,1}}, {0, false, {7,1}}, {0, false, {8,1}}, {0, false, {9,1}}, {0, false, {10,1}}, {0, false, {11,1}}, {0, false, {12,1}}, {0, false, {13,1}}, {0, false, {14,1}}, {1, false, {15,1}}},
-	{{1, false, {0,0}}, {1, false, {1,0}}, {1, false, {2,0}}, {1, false , {3,0}}, {1, false, {4,0}}, {1, false, {5,0}}, {1, false, {6,0}}, {1, false, {7,0}}, {1, false, {8,0}}, {1, false, {9,0}}, {1, false, {10,0}}, {1, false, {11,0}}, {1, false, {12,0}}, {1, false, {13,0}}, {1, false, {14,0}}, {1, false, {15,0}}},
+	{{1, false, {0,8}}, {1, false, {1,8}}, {1, false, {2,8}}, {1, false, {3,8}}, {1, false, {4,8}}, {1, false, {5,8}}, {1, false, {6,8}}, {1, false, {7,8}}, {1, false, {8,8}}, {1, false, {9,8}}, {1, false, {10,8}}, {1, false, {11,8}}, {1, false, {12,8}}, {1, false, {13,8}}, {1, false, {14,8}}, {1, false, {15,8}}},
+	{{1, false, {0,7}}, {0, false, {1,7}}, {0, false, {2,7}}, {1, false, {3,7}}, {0, false, {4,7}}, {0, false, {5,7}}, {0, false, {6,7}}, {0, false, {7,7}}, {0, false, {8,7}}, {0, false, {9,7}}, {0, false, {10,7}}, {0, false, {11,7}}, {0, false, {12,7}}, {0, false, {13,7}}, {0, false, {14,7}}, {1, false, {15,7}}},
+	{{1, false, {0,6}}, {0, false, {1,6}}, {0, false, {2,6}}, {0, false, {3,6}}, {0, false, {4,6}}, {1, false, {5,6}}, {0, false, {6,6}}, {0, false, {7,6}}, {0, false, {8,6}}, {0, false, {9,6}}, {0, false, {10,6}}, {0, false, {11,6}}, {1, false, {12,6}}, {0, false, {13,6}}, {0, false, {14,6}}, {1, false, {15,6}}},
+	{{1, false, {0,5}}, {0, false, {1,5}}, {1, false, {2,5}}, {0, false, {3,5}}, {0, false, {4,5}}, {0, false, {5,5}}, {0, false, {6,5}}, {1, false, {7,5}}, {0, false, {8,5}}, {0, false, {9,5}}, {1, false, {10,5}}, {0, false, {11,5}}, {1, false, {12,5}}, {0, false, {13,5}}, {0, false, {14,5}}, {1, false, {15,5}}},
+	{{1, false, {0,4}}, {0, false, {1,4}}, {1, false, {2,4}}, {1, false, {3,4}}, {0, false, {4,4}}, {0, false, {5,4}}, {1, false, {6,4}}, {1, false, {7,4}}, {1, false, {8,4}}, {0, false, {9,4}}, {0, false, {10,4}}, {0, false, {11,4}}, {1, false, {12,4}}, {0, false, {13,4}}, {1, false, {14,4}}, {1, false, {15,4}}},
+	{{1, false, {0,3}}, {0, false, {1,3}}, {1, false, {2,3}}, {0, false, {3,3}}, {0, false, {4,3}}, {0, false, {5,3}}, {0, false, {6,3}}, {1, false, {7,3}}, {0, false, {8,3}}, {0, false, {9,3}}, {1, false, {10,3}}, {0, false, {11,3}}, {1, false, {12,3}}, {0, false, {13,3}}, {0, false, {14,3}}, {1, false, {15,3}}},
+	{{1, false, {0,2}}, {0, false, {1,2}}, {0, false, {2,2}}, {0, false, {3,2}}, {0, false, {4,2}}, {0, false, {5,2}}, {0, false, {6,2}}, {0, false, {7,2}}, {0, false, {8,2}}, {0, false, {9,2}}, {0, false, {10,2}}, {0, false, {11,2}}, {1, false, {12,2}}, {0, false, {13,2}}, {0, false, {14,2}}, {1, false, {15,2}}},
+	{{1, false, {0,1}}, {0, false, {1,1}}, {0, false, {2,1}}, {1, false ,{3,1}}, {0, false, {4,1}}, {0, false, {5,1}}, {0, false, {6,1}}, {0, false, {7,1}}, {0, false, {8,1}}, {0, false, {9,1}}, {0, false, {10,1}}, {0, false, {11,1}}, {0, false, {12,1}}, {0, false, {13,1}}, {0, false, {14,1}}, {1, false, {15,1}}},
+	{{1, false, {0,0}}, {1, false, {1,0}}, {1, false, {2,0}}, {1, false ,{3,0}}, {1, false, {4,0}}, {1, false, {5,0}}, {1, false, {6,0}}, {1, false, {7,0}}, {1, false, {8,0}}, {1, false, {9,0}}, {1, false, {10,0}}, {1, false, {11,0}}, {1, false, {12,0}}, {1, false, {13,0}}, {1, false, {14,0}}, {1, false, {15,0}}},
 };
 
 internal Color DEBUGCreateColor(u8 alpha, u8 red, u8 green, u8 blue)
@@ -193,9 +192,9 @@ internal void GameLoop(GameBackBuffer* buffer, GameInput* gameInput, GameMemory*
 		{
 			for(s32 x = 0; x < TileMap.CountX; x++)
 			{
-				if(TileMap1[y][x].TileType == 1 && TileMap1[y][x].HasGeometryLoaded == false)
+				if(TileMap1[y][x].TileType == 1 && TileMap1[y][x].IsLoaded == false)
 				{
-					TileMap1[y][x].HasGeometryLoaded = true;
+					TileMap1[y][x].IsLoaded = true;
 
 					Entity* wall = &gameState->Entities[index];
 					wall->Position = GetTileCenter(x, y, &TileMap);
@@ -215,7 +214,7 @@ internal void GameLoop(GameBackBuffer* buffer, GameInput* gameInput, GameMemory*
 					while(TileMap1[y + wallCountY][x].TileType == 1 &&
 						 (y + wallCountY < TileMap.CountY))
 					{
-						TileMap1[y + wallCountY][x].HasGeometryLoaded = true;
+						TileMap1[y + wallCountY][x].IsLoaded = true;
 						if(HasVerticalMapped == false)
 						{
 							HasVerticalMapped = true;
@@ -248,7 +247,7 @@ internal void GameLoop(GameBackBuffer* buffer, GameInput* gameInput, GameMemory*
 						while(TileMap1[y][x + wallCountX].TileType == 1 &&
 						     (x + wallCountX < TileMap.CountX))
 						{
-							TileMap1[y][x  + wallCountX].HasGeometryLoaded = true;
+							TileMap1[y][x  + wallCountX].IsLoaded = true;
 
 	                        wall->Position.X += TileMap.TileMeterLength / 2;
 							wall->CollisionWidth += TileMap.TileMeterLength;
@@ -256,6 +255,22 @@ internal void GameLoop(GameBackBuffer* buffer, GameInput* gameInput, GameMemory*
 							wallCountX++;
 						}					
 					}
+
+					index++;
+				}
+				else if(TileMap1[y][x].TileType == 0 && TileMap1[y][x].IsLoaded == false)
+				{
+					TileMap1[y][x].IsLoaded = true;
+
+					Entity* ground = &gameState->Entities[index];
+					ground->Position = GetTileCenter(x, y, &TileMap);
+					ground->Width = TileMap.TileMeterLength;
+					ground->Height = TileMap.TileMeterLength;
+					ground->Type = EntityType_Ground;
+					ground->Index = index;
+					ground->Collider = ColliderType_Null;
+					ground->CollisionWidth = 0.0f;
+					ground->CollisionHeight = 0.0f;
 
 					index++;
 				}
@@ -337,27 +352,22 @@ internal void GameLoop(GameBackBuffer* buffer, GameInput* gameInput, GameMemory*
 	UpdateProjectile(&gameState->Entities[1], gameState);
 	
 	// Draw Tile map	
-	//TODO(matt): Empty Tiles need to be initialized to ground entitiies so these draw calls can be unified -- we dont want to draw empty tiles...
-	Tile* baseTile = TileMap.Tiles;
-	u32 tileCount = TileMap.CountX * TileMap.CountY;
-	u32 tileIndex = 0;
+	// Tile* baseTile = TileMap.Tiles;
+	// u32 tileCount = TileMap.CountX * TileMap.CountY;
+	// u32 tileIndex = 0;
 
-	for(tileIndex; tileIndex < tileCount; tileIndex++)
-	{
-		if(baseTile->TileType == 0)
-		{
-			DebugDrawRect(buffer, 
-						  DEBUGCreateColor(0, 240, 240, 240), 
-						  GetTileCenter(baseTile->TilePosition.X, baseTile->TilePosition.Y, &TileMap),
-						  TileMap.TileMeterLength, 
-						  TileMap.TileMeterLength);
-			if(baseTile->TilePosition.X > 0 && baseTile->TilePosition.Y > 0)
-			{
-				u32 dummy = 0;
-			}
-		}	
-        baseTile++;
-	}
+	// for(tileIndex; tileIndex < tileCount; tileIndex++)
+	// {
+	// 	if(baseTile->TileType == 0)
+	// 	{
+	// 		DebugDrawRect(buffer, 
+	// 					  DEBUGCreateColor(0, 240, 240, 240), 
+	// 					  GetTileCenter(baseTile->TilePosition.X, baseTile->TilePosition.Y, &TileMap),
+	// 					  TileMap.TileMeterLength, 
+	// 					  TileMap.TileMeterLength);
+	// 	}	
+ //        baseTile++;
+	// }
 
 	// Draw entities
 	//TODO(matt)do we need to draw static entities every frame? does it matter?
@@ -368,6 +378,10 @@ internal void GameLoop(GameBackBuffer* buffer, GameInput* gameInput, GameMemory*
 		if(entity->Type == EntityType_Wall)
 		{
 			DebugDrawRect(buffer,  DEBUGCreateColor(0, 60, 60, 60), entity->Position, entity->Width, entity->Height);
+		}
+		else if(entity->Type == EntityType_Ground)
+		{
+			DebugDrawRect(buffer,  DEBUGCreateColor(0, 240, 240, 240), entity->Position, entity->Width, entity->Height);
 		}
 	}
 
