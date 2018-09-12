@@ -383,9 +383,12 @@ internal void GameLoop(GameBackBuffer* buffer, GameInput* gameInput, GameMemory*
 		{
 			DebugDrawRect(buffer,  DEBUGCreateColor(0, 240, 240, 240), entity->Position, entity->Width, entity->Height);
 		}
+		else if(entity->Type == EntityType_Player)
+		{
+		}
 	}
 
-	DebugDrawCircle(buffer, &playerColor, gameState->Entities[0].Position.X, gameState->Entities[0].Position.Y, gameState->Entities[0].CollisionRadius);		
+			DebugDrawCircle(buffer, &playerColor, gameState->Entities[0].Position.X, gameState->Entities[0].Position.Y, gameState->Entities[0].CollisionRadius);		
 
 	if(gameState->Entities[1].IsActive == true)
 	{

@@ -3,6 +3,7 @@
 #include <assert.h>
 #include <stdio.h>
 #include <XInput.h>
+#include <xaudio2.h>
 
 #define internal static;
 #define GLOBAL_VARIABLE static;
@@ -10,6 +11,14 @@
 #define KiloBytes(value) (value * 1024)
 #define MegaBytes(value) (KiloBytes(value) * 1024)
 #define GigaBytes(value) (MegaBytes(value) * 1024)
+
+//Little-Endian
+#define fourccRIFF 'FFIR'
+#define fourccDATA 'atad'
+#define fourccFMT ' tmf'
+#define fourccWAVE 'EVAW'
+#define fourccXWMA 'AMWX'
+#define fourccDPDS 'sdpd'
 
 #define u8 uint8_t
 #define u16 uint16_t
@@ -21,6 +30,7 @@
 #define s64  int64_t
 #define f32 float
 #define d64 double
+#define bool32 int32_t
 
 #include "Sci_Fi_Pie.cpp"
 
@@ -66,11 +76,139 @@ struct LoadedBitmap
 };
 
 GLOBAL_VARIABLE Win32BackBuffer GLOBAL_BACK_BUFFER;
-GLOBAL_VARIABLE bool RUNNING;
+GLOBAL_VARIABLE bool32 RUNNING;
 GLOBAL_VARIABLE s64 COUNTER_FREQUENCY;
 GLOBAL_VARIABLE f32 TARGET_MS_PER_FRAME;
 
-internal void Win32ProcessControllerMessage(GameButton* button, bool isDown)
+internal HRESULT Win32_FindChunk(HANDLE hFile, DWORD fourcc, DWORD & dwChunkSize, DWORD & dwChunkDataPosition)
+{
+    HRESULT hr = S_OK;
+    if( INVALID_SET_FILE_POINTER == SetFilePointer( hFile, 0, NULL, FILE_BEGIN ) )
+        return HRESULT_FROM_WIN32( GetLastError() );
+
+    DWORD dwChunkType;
+    DWORD dwChunkDataSize;
+    DWORD dwRIFFDataSize = 0;
+    DWORD dwFileType;
+    DWORD bytesRead = 0;
+    DWORD dwOffset = 0;
+
+    while (hr == S_OK)
+    {
+        DWORD dwRead;
+        if( 0 == ReadFile( hFile, &dwChunkType, sizeof(DWORD), &dwRead, NULL ) )
+            hr = HRESULT_FROM_WIN32( GetLastError() );
+
+        if( 0 == ReadFile( hFile, &dwChunkDataSize, sizeof(DWORD), &dwRead, NULL ) )
+            hr = HRESULT_FROM_WIN32( GetLastError() );
+
+        switch (dwChunkType)
+        {
+        case fourccRIFF:
+            dwRIFFDataSize = dwChunkDataSize;
+            dwChunkDataSize = 4;
+            if( 0 == ReadFile( hFile, &dwFileType, sizeof(DWORD), &dwRead, NULL ) )
+                hr = HRESULT_FROM_WIN32( GetLastError() );
+            break;
+
+        default:
+            if( INVALID_SET_FILE_POINTER == SetFilePointer( hFile, dwChunkDataSize, NULL, FILE_CURRENT ) )
+            return HRESULT_FROM_WIN32( GetLastError() );            
+        }
+
+        dwOffset += sizeof(DWORD) * 2;
+
+        if (dwChunkType == fourcc)
+        {
+            dwChunkSize = dwChunkDataSize;
+            dwChunkDataPosition = dwOffset;
+            return S_OK;
+        }
+
+        dwOffset += dwChunkDataSize;
+
+        if (bytesRead >= dwRIFFDataSize) return S_FALSE;
+
+    }
+
+    return S_OK;
+
+}
+
+internal HRESULT Win32_ReadChunkData(HANDLE hFile, void * buffer, DWORD buffersize, DWORD bufferoffset)
+{
+    HRESULT hr = S_OK;
+    if( INVALID_SET_FILE_POINTER == SetFilePointer( hFile, bufferoffset, NULL, FILE_BEGIN ) )
+        return HRESULT_FROM_WIN32( GetLastError() );
+    DWORD dwRead;
+    if( 0 == ReadFile( hFile, buffer, buffersize, &dwRead, NULL ) )
+        hr = HRESULT_FROM_WIN32( GetLastError() );
+    return hr;
+}
+
+internal bool32 Win32InitSound()
+{
+	//load lib
+	IXAudio2* pXAudio2  = {};
+	IXAudio2MasteringVoice* pMasterVoice = {};
+
+	HRESULT audioResult = XAudio2Create(&pXAudio2, 0, 0);
+	HRESULT masterVoiceResult = pXAudio2->CreateMasteringVoice(&pMasterVoice);
+
+	if(audioResult == S_OK && masterVoiceResult == S_OK)
+	{
+		char* fileName = "test.wav";
+
+		//get sound object
+		WAVEFORMATEXTENSIBLE wfx = {};
+
+		//create a sound buffer
+		XAUDIO2_BUFFER buffer = {};
+
+		//load file
+		void* fileHandle = CreateFile(fileName, GENERIC_READ, FILE_SHARE_READ, 0,
+										   OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, 0);
+
+		DWORD dwChunkSize;
+		DWORD dwChunkPosition;
+
+		//check the file type, should be fourccWAVE or 'XWMA'
+		Win32_FindChunk(fileHandle, fourccRIFF, dwChunkSize, dwChunkPosition );
+		DWORD filetype;
+		Win32_ReadChunkData(fileHandle, &filetype, sizeof(DWORD), dwChunkPosition);
+		if (filetype != fourccWAVE)
+		    return -1;
+
+		//Locate the 'fmt ' chunk, and copy its contents into a WAVEFORMATEXTENSIBLE structure.
+		Win32_FindChunk(fileHandle, fourccFMT, dwChunkSize, dwChunkPosition );
+		Win32_ReadChunkData(fileHandle, &wfx, dwChunkSize, dwChunkPosition );
+
+		//fill out the audio data buffer with the contents of the fourccDATA chunk
+		Win32_FindChunk(fileHandle, fourccDATA, dwChunkSize, dwChunkPosition );
+		BYTE* pDataBuffer = (BYTE*)VirtualAlloc(0, dwChunkSize, MEM_COMMIT, PAGE_READWRITE);
+		Win32_ReadChunkData(fileHandle, pDataBuffer, dwChunkSize, dwChunkPosition);
+
+		buffer.AudioBytes = dwChunkSize;  //buffer containing audio data
+		buffer.pAudioData = pDataBuffer;  //size of the audio buffer in bytes
+		buffer.Flags = XAUDIO2_END_OF_STREAM; // tell the source voice not to expect any data after this buffer
+
+		IXAudio2SourceVoice* pSourceVoice;
+		HRESULT sourceVoiceResult = pXAudio2->CreateSourceVoice( &pSourceVoice, (WAVEFORMATEX*)&wfx );
+		HRESULT submitSourceResult = pSourceVoice->SubmitSourceBuffer( &buffer );
+
+		//Start playing
+		HRESULT playResult = pSourceVoice->Start();
+
+		return 0;
+	}
+	else
+	{
+		return -1;
+		//audio failed to load
+	}
+}
+
+internal void Win32ProcessControllerMessage(GameButton* button, bool32 isDown)
 {	
 	button->EndedDown = isDown;
 }
@@ -95,8 +233,8 @@ internal void Win32ProcessMessages(GameInput* gameInput)
 	  	XINPUT_KEYSTROKE button = {};
        	XInputGetKeystroke(i, 0, &button);
 
-       	bool isDown = (button.Flags == XINPUT_KEYSTROKE_KEYDOWN);
-       	bool wasDown = (button.Flags == XINPUT_KEYSTROKE_KEYUP);
+       	bool32 isDown = (button.Flags == XINPUT_KEYSTROKE_KEYDOWN);
+       	bool32 wasDown = (button.Flags == XINPUT_KEYSTROKE_KEYUP);
 
        	if(wasDown != isDown)
        	{
@@ -197,8 +335,8 @@ internal void Win32ProcessMessages(GameInput* gameInput)
 			case WM_SYSKEYDOWN:
 			{
 				u32 VKCode = (u32)message.wParam;
-				bool wasDown = (((u32)message.lParam & (1 << 30)) != 0);
-				bool isDown = (((u32)message.lParam & (1 << 31)) == 0);
+				bool32 wasDown = (((u32)message.lParam & (1 << 30)) != 0);
+				bool32 isDown = (((u32)message.lParam & (1 << 31)) == 0);
 				
 				if(wasDown != isDown)
 				{
@@ -269,6 +407,15 @@ internal void Win32ProcessMessages(GameInput* gameInput)
 							break;					
 						}
 
+						case VK_F4:
+						{
+							bool32 AltKeyWasDown = (message.lParam & (1 << 29));
+							if(AltKeyWasDown)
+							{
+								RUNNING = false;
+							}
+						}break;
+
 						default:
 						{
 
@@ -291,7 +438,7 @@ internal LoadedBitmap Win32LoadBitmap(char* fileName)
 
 	u32 fileSize = GetFileSize(fileHandle, 0);
 	void* fileMemory = VirtualAlloc(0, fileSize, MEM_COMMIT, PAGE_READWRITE);
-	bool readResult = ReadFile(fileHandle, fileMemory, fileSize, 0, 0);	
+	bool32 readResult = ReadFile(fileHandle, fileMemory, fileSize, 0, 0);	
 	assert(readResult);
 
 	BitmapHeader* header = (BitmapHeader*)fileMemory;
@@ -573,6 +720,8 @@ int CALLBACK WinMain(
 
 	GameInput gameInput = {};
 	// LoadedBitmap background = Win32LoadBitmap("background_test.bmp");
+
+	Win32InitSound();
 	
 	//TIMING CODE
 	LARGE_INTEGER counterFrequencyResult;
